@@ -1,3 +1,4 @@
+const bodyParser = require('body-parser')
 const express = require('express')
 const teams = require('./teams.json')
 
@@ -17,6 +18,26 @@ app.get('/teams/:input', (request, response) => {
   return matchingTeams.length
     ? response.send(matchingTeams)
     : response.sendStatus(404)
+
+})
+app.use(bodyParser.json())
+
+app.post('/teams', (request, response) => {
+  const { location, mascot, abbreviation, conference, division } = request.body
+
+  if (!location || !mascot || !abbreviation || !conference || !division) {
+    response.status(400).send('The following are require: location, mascot, abbreviation, conference, division')
+  }
+  const lastid = teams.reduce((acc, team) => {
+    return team.id > acc ? team.id : acc
+  }, 0)
+
+
+  const newTeam = { location, mascot, abbreviation, conference, division, id: lastid + 1 }
+
+  teams.push(newTeam)
+
+  response.status(201).send(newTeam)
 
 })
 
