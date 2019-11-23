@@ -1,18 +1,19 @@
 const bodyParser = require('body-parser')
 const express = require('express')
-const teams = require('./teams.json')
+const models = require('./models')
 
 const app = express()
 
-app.get('/teams', (request, response) => {
+app.get('/teams', async (request, response) => {
+  const teams = await models.Teams.findAll()
   response.send(teams)
 })
 
-app.get('/teams/:input', (request, response) => {
-
-
-  const matchingTeams = teams.filter((team) => {
-    return team.id === Number(request.params.input) || team.abbreviation.toUpperCase() === request.params.input.toUpperCase()
+app.get('/teams/:input', async (request, response) => {
+  const matchingTeams = await models.Teams.findAll({
+    where: {
+      [models.Op.or]: [{ id: request.params.input }, { abbreviation: request.params.input }]
+    }
   })
 
   return matchingTeams.length
@@ -22,20 +23,15 @@ app.get('/teams/:input', (request, response) => {
 })
 app.use(bodyParser.json())
 
-app.post('/teams', (request, response) => {
+app.post('/teams', async (request, response) => {
   const { location, mascot, abbreviation, conference, division } = request.body
 
   if (!location || !mascot || !abbreviation || !conference || !division) {
-    response.status(400).send('The following are require: location, mascot, abbreviation, conference, division')
+
+    response.status(400).send('The following are required: location, mascot, abbreviation, conference, division')
   }
-  const lastid = teams.reduce((acc, team) => {
-    return team.id > acc ? team.id : acc
-  }, 0)
 
-
-  const newTeam = { location, mascot, abbreviation, conference, division, id: lastid + 1 }
-
-  teams.push(newTeam)
+  const newTeam = await models.Teams.create({ location, mascot, abbreviation, conference, division })
 
   response.status(201).send(newTeam)
 
